@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GlobalRole {
+  ADMIN
+  LEAD
+  MEMBER
+}
+
+enum ProjectRole {
+  LEAD
+  MEMBER
+  VIEWER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id              String     @id @default(cuid())
+  name            String?
+  email           String?    @unique
+  emailVerified   DateTime?
+  image           String?
+  github_username String?
+  github_url      String?
+  role            GlobalRole @default(MEMBER)
+  created_at      DateTime   @default(now())
+
+  accounts        Account[]
+  sessions        Session[]
+  projectsCreated Project[]       @relation("CreatedProjects")
+  projectMembers  ProjectMember[]
+  tasksAssigned   Task[]          @relation("AssignedTasks")
+  tasksCreated    Task[]          @relation("CreatedTasks")
+  comments        Comment[]
+  activities      ActivityLog[]
+  notifications   Notification[]
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?       @db.Text
+  start_date  DateTime?
+  deadline    DateTime?
+  status      ProjectStatus @default(ACTIVE)
+  created_by  String
+  created_at  DateTime      @default(now())
+
+  creator     User            @relation("CreatedProjects", fields: [created_by], references: [id])
+  members     ProjectMember[]
+  tasks       Task[]
+  activityLogs ActivityLog[]
+}
+
+model ProjectMember {
+  id         String      @id @default(cuid())
+  project_id String
+  user_id    String
+  role       ProjectRole @default(MEMBER)
+
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, user_id])
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  project_id  String
+  title       String
+  description String?    @db.Text
+  assigned_to String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  start_date  DateTime?
+  deadline    DateTime?
+  created_by  String
+  created_at  DateTime   @default(now())
+
+  project     Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  assignee    User?     @relation("AssignedTasks", fields: [assigned_to], references: [id], onDelete: SetNull)
+  creator     User      @relation("CreatedTasks", fields: [created_by], references: [id])
+  comments    Comment[]
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  task_id    String
+  user_id    String
+  content    String   @db.Text
+  created_at DateTime @default(now())
+
+  task       Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  user_id     String
+  action      String
+  target_type String
+  target_id   String
+  created_at  DateTime @default(now())
+
+  user        User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project_id  String?
+  project     Project?  @relation(fields: [project_id], references: [id])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  user_id    String
+  message    String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user       User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
