@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import { addProjectMember } from "@/app/actions/member";
+import Board from "./Board";
 
 export default async function ProjectDetailPage({
   params,
@@ -45,7 +47,10 @@ export default async function ProjectDetailPage({
     );
   }
 
-  const isMember = project.members.some((m) => m.user_id === session.user.id);
+  const currentUserRole = project.members.find(
+    (m) => m.user_id === session.user.id,
+  )?.role;
+  const isMember = !!currentUserRole;
 
   if (!isMember) {
     return (
@@ -65,8 +70,8 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <header className="border-b border-zinc-800 bg-black/50 px-8 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
+      <header className="border-b border-zinc-800 bg-black/50 px-8 py-4 sticky top-0 backdrop-blur-md z-10">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
@@ -74,52 +79,92 @@ export default async function ProjectDetailPage({
             >
               &larr; Dashboard
             </Link>
-            <h1 className="text-xl font-semibold">{project.name}</h1>
+            <span className="text-zinc-700">/</span>
+            <h1 className="text-xl font-semibold tracking-tight">
+              {project.name}
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            {currentUserRole === "LEAD" && (
+              <Link
+                href={`/dashboard/projects/${project.id}/edit`}
+                className="rounded-md border border-zinc-700 bg-zinc-900/50 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+              >
+                Pengaturan
+              </Link>
+            )}
+            <Link
+              href={`/dashboard/projects/${project.id}/tasks/new`}
+              className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black hover:bg-zinc-200 transition-colors"
+            >
+              + Tambah Task
+            </Link>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl p-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="mb-8 flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Daftar Task</h2>
-              <Link
-                href={`/dashboard/projects/${project.id}/tasks/new`}
-                className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black hover:bg-zinc-200"
-              >
-                + Tambah Task
-              </Link>
-            </div>
-
-            <div className="space-y-4">
-              {project.tasks.map((task) => (
-                <Link
-                  href={`/dashboard/projects/${project.id}/tasks/${task.id}`}
-                  key={task.id}
-                  className="block rounded-lg border border-zinc-800 bg-zinc-900/50 p-5 hover:bg-zinc-800"
-                >
-                  <h3 className="font-medium text-white">{task.title}</h3>
-                  <p className="text-sm text-zinc-400">
-                    {task.description || "Tanpa deskripsi"}
-                  </p>
-                </Link>
-              ))}
-            </div>
+      <main className="mx-auto max-w-[1400px] p-8">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-4">
+          <div className="xl:col-span-3">
+            <Board initialTasks={project.tasks} projectId={project.id} />
           </div>
 
           <div className="space-y-6">
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+              <h3 className="text-sm font-medium text-zinc-500 mb-2">
+                Deskripsi Proyek
+              </h3>
+              <p className="text-sm text-zinc-300">
+                {project.description || "Tidak ada deskripsi."}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+              <h3 className="mb-4 font-semibold text-white">Undang Anggota</h3>
+              <form action={addProjectMember} className="space-y-3">
+                <input type="hidden" name="project_id" value={project.id} />
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="Masukkan email tim..."
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white focus:border-white focus:outline-none"
+                />
+                <select
+                  name="role"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white focus:border-white focus:outline-none"
+                >
+                  <option value="MEMBER">Member</option>
+                  <option value="VIEWER">Viewer</option>
+                </select>
+                <button
+                  type="submit"
+                  className="w-full rounded-md bg-white py-2 text-sm font-medium text-black hover:bg-zinc-200 transition-colors"
+                >
+                  Tambah
+                </button>
+              </form>
+            </div>
+
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
               <h3 className="mb-4 font-semibold text-white">Log Aktivitas</h3>
               <div className="space-y-4">
-                {project.activityLogs.map((log) => (
-                  <div key={log.id} className="border-l-2 border-zinc-700 pl-3">
-                    <p className="text-xs text-zinc-300">{log.action}</p>
-                    <p className="text-[10px] text-zinc-500 mt-1">
-                      {new Date(log.created_at).toLocaleString("id-ID")}
-                    </p>
-                  </div>
-                ))}
+                {project.activityLogs.length > 0 ? (
+                  project.activityLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="border-l-2 border-zinc-700 pl-3"
+                    >
+                      <p className="text-xs text-zinc-300">{log.action}</p>
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        {log.user.name} •{" "}
+                        {new Date(log.created_at).toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-zinc-500">Belum ada aktivitas.</p>
+                )}
               </div>
             </div>
           </div>

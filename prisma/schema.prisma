@@ -38,20 +38,21 @@ enum Priority {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
 }
 
@@ -83,6 +84,7 @@ model User {
   comments        Comment[]
   activities      ActivityLog[]
   notifications   Notification[]
+  timeLogs        TimeLog[]
 }
 
 model Project {
@@ -95,9 +97,9 @@ model Project {
   created_by  String
   created_at  DateTime      @default(now())
 
-  creator     User            @relation("CreatedProjects", fields: [created_by], references: [id])
-  members     ProjectMember[]
-  tasks       Task[]
+  creator      User            @relation("CreatedProjects", fields: [created_by], references: [id])
+  members      ProjectMember[]
+  tasks        Task[]
   activityLogs ActivityLog[]
 }
 
@@ -107,8 +109,8 @@ model ProjectMember {
   user_id    String
   role       ProjectRole @default(MEMBER)
 
-  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([project_id, user_id])
 }
@@ -126,10 +128,14 @@ model Task {
   created_by  String
   created_at  DateTime   @default(now())
 
-  project     Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  assignee    User?     @relation("AssignedTasks", fields: [assigned_to], references: [id], onDelete: SetNull)
-  creator     User      @relation("CreatedTasks", fields: [created_by], references: [id])
-  comments    Comment[]
+  notes       String?   @db.Text
+  proof_image String?
+  time_logs   TimeLog[]
+
+  project  Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  assignee User?     @relation("AssignedTasks", fields: [assigned_to], references: [id], onDelete: SetNull)
+  creator  User      @relation("CreatedTasks", fields: [created_by], references: [id])
+  comments Comment[]
 }
 
 model Comment {
@@ -139,8 +145,8 @@ model Comment {
   content    String   @db.Text
   created_at DateTime @default(now())
 
-  task       Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
-  user       User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model ActivityLog {
@@ -151,9 +157,9 @@ model ActivityLog {
   target_id   String
   created_at  DateTime @default(now())
 
-  user        User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  project_id  String?
-  project     Project?  @relation(fields: [project_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project_id String?
+  project    Project? @relation(fields: [project_id], references: [id])
 }
 
 model Notification {
@@ -163,5 +169,15 @@ model Notification {
   is_read    Boolean  @default(false)
   created_at DateTime @default(now())
 
-  user       User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model TimeLog {
+  id         String   @id @default(uuid())
+  task_id    String
+  task       Task     @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user_id    String
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  duration   Int
+  created_at DateTime @default(now())
 }

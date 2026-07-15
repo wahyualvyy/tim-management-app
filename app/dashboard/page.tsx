@@ -3,7 +3,6 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import Image from "next/image";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -43,32 +42,7 @@ export default async function DashboardPage() {
   const totalProjects = projects.length;
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <nav className="border-b border-zinc-800 bg-black/50 backdrop-blur-md sticky top-0 z-50 px-8 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-6 w-6 rounded-md bg-white flex items-center justify-center">
-              <span className="text-black font-black text-xs">T</span>
-            </div>
-            <span className="font-semibold tracking-tight">Workspace</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-400">{session.user.name}</span>
-            {session.user.image ? (
-              <Image
-                src={session.user.image}
-                alt="Profile"
-                width={32}
-                height={32}
-                className="rounded-full border border-zinc-700"
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-zinc-800" />
-            )}
-          </div>
-        </div>
-      </nav>
-
+    <div className="text-white">
       <main className="mx-auto max-w-6xl p-8">
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
