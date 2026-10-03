@@ -2,16 +2,20 @@ import { z } from "zod";
 import { idSchema, text } from "./common";
 import { isIsoDate } from "@/lib/dates";
 
-export const startTimerSchema = z.object({ taskId: idSchema });
+export const startTimerSchema = z.object({
+  taskId: idSchema,
+  /** Confirms stopping a timer that is running on another task. */
+  replaceRunning: z.boolean().optional(),
+});
 
 export const manualTimeSchema = z.object({
   taskId: idSchema,
   minutes: z.coerce
-    .number({ message: "Enter minutes." })
-    .int({ message: "Use whole minutes." })
-    .min(1, { message: "Enter at least 1 minute." })
-    .max(24 * 60, { message: "A single entry can be at most 24 hours." }),
-  date: z.string().trim().refine(isIsoDate, { message: "Use a valid date." }),
+    .number({ message: "Masukkan jumlah menit." })
+    .int({ message: "Gunakan menit bulat." })
+    .min(1, { message: "Minimal 1 menit." })
+    .max(24 * 60, { message: "Satu entri maksimal 24 jam." }),
+  date: z.string().trim().refine(isIsoDate, { message: "Tanggal tidak valid." }),
   note: text(300).default(""),
 });
 

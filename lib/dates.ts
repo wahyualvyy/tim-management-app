@@ -63,7 +63,7 @@ export function zonedMidnight(isoDate: string, timeZone: string): number {
 }
 
 export function formatCalendarDate(isoDate: string, options: Intl.DateTimeFormatOptions = {}): string {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("id-ID", {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
@@ -72,7 +72,7 @@ export function formatCalendarDate(isoDate: string, options: Intl.DateTimeFormat
 }
 
 export function formatDateTime(epochMs: number, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("id-ID", {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -82,7 +82,7 @@ export function formatDateTime(epochMs: number, timeZone: string): string {
 }
 
 export function formatLongDate(epochMs: number, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("id-ID", {
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -93,20 +93,20 @@ export function formatLongDate(epochMs: number, timeZone: string): string {
 export function formatRelative(epochMs: number, now: number): string {
   const diff = Math.round((epochMs - now) / 1000);
   const abs = Math.abs(diff);
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-  if (abs < 60) return "just now";
+  const rtf = new Intl.RelativeTimeFormat("id", { numeric: "auto" });
+  if (abs < 60) return "baru saja";
   if (abs < 3600) return rtf.format(Math.round(diff / 60), "minute");
   if (abs < 86400) return rtf.format(Math.round(diff / 3600), "hour");
   if (abs < 86400 * 30) return rtf.format(Math.round(diff / 86400), "day");
   return rtf.format(Math.round(diff / (86400 * 30)), "month");
 }
 
-/** "1h 05m", "12m", "0m". */
+/** "1j 05m", "12m", "0m" (jam/menit). */
 export function formatDuration(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds));
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (h > 0) return `${h}j ${String(m).padStart(2, "0")}m`;
   return `${m}m`;
 }
 
@@ -122,7 +122,7 @@ export function formatClock(totalSeconds: number): string {
 /** Relative wording for a due date compared to today. */
 export function dueLabel(dueDate: string, today: string): { text: string; tone: "overdue" | "today" | "soon" | "normal" } {
   if (dueDate < today) return { text: formatCalendarDate(dueDate), tone: "overdue" };
-  if (dueDate === today) return { text: "Today", tone: "today" };
-  if (dueDate === addDays(today, 1)) return { text: "Tomorrow", tone: "soon" };
+  if (dueDate === today) return { text: "Hari ini", tone: "today" };
+  if (dueDate === addDays(today, 1)) return { text: "Besok", tone: "soon" };
   return { text: formatCalendarDate(dueDate), tone: "normal" };
 }

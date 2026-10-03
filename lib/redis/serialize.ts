@@ -59,21 +59,6 @@ export function stringArray(raw: string | undefined): string[] {
   }
 }
 
-export function stringRecord(raw: string | undefined): Record<string, string> {
-  if (!raw) return {};
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof v === "string") out[k] = v;
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
 type HashValue = string | number | boolean | null | string[] | Record<string, string>;
 
 /** Convert a domain object to a flat string hash for HSET. Nulls become "". */

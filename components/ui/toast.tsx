@@ -47,7 +47,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className="animate-pop-in pointer-events-auto flex items-start gap-2.5 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm shadow-pop"
+            className="animate-pop-in pointer-events-auto flex items-start gap-2.5 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm shadow-pop"
             role={t.tone === "error" ? "alert" : "status"}
           >
             {t.tone === "success" ? (
@@ -60,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => dismiss(t.id)}
               className="rounded p-0.5 text-subtle hover:text-fg"
-              aria-label="Dismiss"
+              aria-label="Tutup"
             >
               <X className="h-3.5 w-3.5" />
             </button>

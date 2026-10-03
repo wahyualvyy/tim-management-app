@@ -5,17 +5,10 @@ const assignable = z.enum(["LEAD", "MEMBER", "VIEWER"]);
 
 export const addMemberSchema = z.object({
   projectId: idSchema,
-  email: z.email({ message: "Enter a valid email address." }).trim().toLowerCase(),
+  userId: z.string({ message: "Pilih orang yang akan ditambahkan." }).pipe(idSchema),
   role: assignable.default("MEMBER"),
 });
 
-export const changeMemberRoleSchema = z.object({
-  projectId: idSchema,
-  userId: idSchema,
-  role: assignable,
-});
+export const changeMemberRoleSchema = z.object({ projectId: idSchema, userId: idSchema, role: assignable });
 
-export const removeMemberSchema = z.object({
-  projectId: idSchema,
-  userId: idSchema,
-});
+export const removeMemberSchema = z.object({ projectId: idSchema, userId: idSchema });

@@ -1,61 +1,52 @@
 "use server";
 
-import { requireActionUser } from "@/lib/auth/session";
+import { requireAuth } from "@/lib/auth/guards";
 import { parseInput, runAction } from "@/lib/actions";
-import { updateUser } from "@/lib/redis/repositories/user.repository";
-import { AppError } from "@/lib/errors";
-import { AVATAR_MAX_BYTES, AVATAR_TYPES, getStorage } from "@/lib/storage";
+import { bumpSessionVersion, changeUsername, normalizeUsername, reindexUserSearch, updateUser } from "@/lib/redis/users";
+import { reindexMemberEverywhere } from "@/lib/redis/members";
+import { isOwnedFile, removeStoredFile } from "@/lib/storage";
 import { revalidateApp } from "@/lib/revalidate";
 import { themeSchema, updateProfileSchema } from "@/schemas/profile.schema";
 import type { ActionResult } from "@/types/action";
 
 export async function updateProfileAction(input: unknown): Promise<ActionResult> {
-  return runAction(async () => {
-    const user = await requireActionUser();
-    const values = parseInput(updateProfileSchema, input);
+  return runAction("updateProfile", async () => {
+    const user = await requireAuth();
+    const { username, ...values } = parseInput(updateProfileSchema, input);
+    await changeUsername(user, username);
     await updateUser(user.id, values);
+    // Names and usernames are indexed for search and member lists everywhere the user appears.
+    const after = { id: user.id, name: values.name, username: normalizeUsername(username), email: user.email };
+    await reindexUserSearch(user, after);
+    await reindexMemberEverywhere(user, after);
     revalidateApp();
     return undefined;
   });
 }
 
-export async function uploadAvatarAction(formData: FormData): Promise<ActionResult<{ url: string }>> {
-  return runAction(async () => {
-    const user = await requireActionUser();
-    const file = formData.get("avatar");
-    if (!(file instanceof File) || file.size === 0) throw new AppError("Choose an image to upload.");
-    if (!AVATAR_TYPES.includes(file.type)) throw new AppError("Use a PNG, JPEG, WebP or GIF image.");
-    if (file.size > AVATAR_MAX_BYTES) throw new AppError("Images must be 2 MB or smaller.");
-    const storage = getStorage();
-    if (!storage) throw new AppError("Image uploads are not configured on this server.");
-
-    const { url } = await storage.upload(`avatars/${user.id}`, file);
-    const previous = user.avatar;
-    await updateUser(user.id, { avatar: url });
-    // Only delete files this app uploaded, never the Google profile photo.
-    if (previous && previous.includes(".blob.vercel-storage.com")) {
-      await storage.remove(previous).catch(() => undefined);
-    }
-    revalidateApp();
-    return { url };
+/** Invalidates every session of this user, including the current one. */
+export async function signOutEverywhereAction(): Promise<ActionResult> {
+  return runAction("signOutEverywhere", async () => {
+    const user = await requireAuth();
+    await bumpSessionVersion(user.id);
+    return undefined;
   });
 }
 
-export async function removeAvatarAction(): Promise<ActionResult> {
-  return runAction(async () => {
-    const user = await requireActionUser();
-    if (user.avatar?.includes(".blob.vercel-storage.com")) {
-      await getStorage()?.remove(user.avatar).catch(() => undefined);
-    }
-    await updateUser(user.id, { avatar: null });
+/** Switch back to the photo from the Google account. */
+export async function resetAvatarAction(): Promise<ActionResult> {
+  return runAction("resetAvatar", async () => {
+    const user = await requireAuth();
+    if (user.avatar && isOwnedFile(user.avatar)) await removeStoredFile(user.avatar).catch(() => undefined);
+    await updateUser(user.id, { avatar: user.providerAvatar });
     revalidateApp();
     return undefined;
   });
 }
 
 export async function setThemeAction(input: unknown): Promise<ActionResult> {
-  return runAction(async () => {
-    const user = await requireActionUser();
+  return runAction("setTheme", async () => {
+    const user = await requireAuth();
     const { theme } = parseInput(themeSchema, input);
     await updateUser(user.id, { themePreference: theme });
     return undefined;

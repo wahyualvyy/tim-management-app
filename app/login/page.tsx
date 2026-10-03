@@ -1,28 +1,25 @@
 import type { Metadata } from "next";
-import { Boxes, Clock3, Users } from "lucide-react";
+import { Boxes, Clock3, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { safeRedirectPath } from "@/lib/utils";
 import { GoogleSignInButton } from "./google-button";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = { title: "Masuk" };
 
 const ERRORS: Record<string, string> = {
-  OAuthAccountNotLinked: "This email is linked to a different sign-in method.",
-  AccessDenied: "Access was denied. Try a different Google account.",
-  NoEmail: "Your Google account did not share an email address.",
-  Unavailable: "We couldn't reach the data store. Please try again in a moment.",
-  SessionExpired: "Your session ended. Please sign in again.",
-  Configuration: "Sign-in is not configured correctly on this server.",
+  OAuthAccountNotLinked: "Email ini terhubung dengan metode masuk lain.",
+  AccessDenied: "Akses ditolak. Coba gunakan akun Google lain.",
+  NoEmail: "Akun Google Anda tidak membagikan alamat email.",
+  Unavailable: "Penyimpanan data sedang tidak dapat dijangkau. Coba lagi sebentar.",
+  SessionExpired: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+  Suspended: "Akun Anda sedang ditangguhkan. Hubungi admin tim Anda.",
+  Configuration: "Login belum dikonfigurasi dengan benar di server ini.",
 };
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string; callbackUrl?: string }>;
-}) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; callbackUrl?: string }> }) {
   const { error, callbackUrl } = await searchParams;
-  const message = error ? (ERRORS[error] ?? "Sign-in failed. Please try again.") : null;
+  const message = error ? (ERRORS[error] ?? "Gagal masuk. Silakan coba lagi.") : null;
   const target = safeRedirectPath(callbackUrl);
 
   return (
@@ -30,17 +27,15 @@ export default async function LoginPage({
       <section className="relative hidden flex-col justify-between border-r border-border bg-surface px-12 py-10 lg:flex">
         <Logo />
         <div className="max-w-md">
-          <h1 className="text-3xl font-semibold leading-tight tracking-tight">
-            Plan the work. Track the time. Ship together.
-          </h1>
+          <h1 className="text-3xl font-semibold leading-tight tracking-tight">Rencanakan pekerjaan. Catat waktunya. Selesaikan bersama.</h1>
           <ul className="mt-8 space-y-5 text-sm">
             {[
-              { icon: Boxes, title: "Projects, modules and tasks", text: "Break large projects into modules your team can own." },
-              { icon: Clock3, title: "Reliable time tracking", text: "Timers keep running across tabs, reloads and devices." },
-              { icon: Users, title: "Clear roles", text: "Owners, leads, members and viewers each see the right controls." },
+              { icon: Boxes, title: "Proyek, modul, sub modul, tugas", text: "Pecah proyek besar menjadi bagian yang jelas pemiliknya." },
+              { icon: Clock3, title: "Timer yang benar-benar akurat", text: "Tetap berjalan saat pindah tab, halaman dimuat ulang, atau ganti perangkat." },
+              { icon: ShieldCheck, title: "Peran yang jelas", text: "Pemilik, lead, anggota, dan pengamat melihat kontrol yang sesuai." },
             ].map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex gap-3">
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface-2 text-muted">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted">
                   <Icon className="h-3.5 w-3.5" aria-hidden />
                 </span>
                 <span>
@@ -51,7 +46,7 @@ export default async function LoginPage({
             ))}
           </ul>
         </div>
-        <p className="text-xs text-subtle">Tim · Team management</p>
+        <p className="text-xs text-subtle">Tim · Manajemen tim dan proyek</p>
       </section>
 
       <section className="flex flex-col px-6 py-8 sm:px-10">
@@ -60,10 +55,10 @@ export default async function LoginPage({
           <ThemeToggle persist={false} />
         </div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">
-          <h2 className="text-xl font-semibold tracking-tight">Sign in to Tim</h2>
-          <p className="mt-1.5 text-sm text-muted">Use your Google account to continue.</p>
+          <h2 className="text-xl font-semibold tracking-tight">Masuk ke Tim</h2>
+          <p className="mt-1.5 text-sm text-muted">Gunakan akun Google Anda untuk melanjutkan.</p>
           {message ? (
-            <p className="mt-5 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-[13px] text-danger" role="alert">
+            <p className="mt-5 rounded-lg bg-danger-soft px-3 py-2 text-[13px] text-danger" role="alert">
               {message}
             </p>
           ) : null}
@@ -71,7 +66,7 @@ export default async function LoginPage({
             <GoogleSignInButton callbackUrl={target} />
           </div>
           <p className="mt-6 text-xs leading-relaxed text-subtle">
-            By continuing you agree to let Tim store your name, email and profile photo to identify you to your team.
+            Dengan melanjutkan, Anda mengizinkan Tim menyimpan nama, email, dan foto profil Anda agar dikenali oleh tim.
           </p>
         </div>
       </section>

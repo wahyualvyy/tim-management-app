@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { loadProjectPage } from "@/lib/domain/project-page";
-import { createTaskContext, loadProjectStructure } from "@/lib/domain/project-data";
+import { createTaskContext, loadMemberPreview, loadProjectPage, loadStructure } from "@/lib/domain/project-data";
 import { requestTime, toTaskItems } from "@/lib/domain/views";
-import { listProjectTasks } from "@/lib/redis/repositories/task.repository";
-import { listProjectActivity } from "@/lib/redis/repositories/activity.repository";
-import { getUsers } from "@/lib/redis/repositories/user.repository";
+import { getProjectSummaries, getProjectTime } from "@/lib/redis/projects";
+import { countOverdue, listColumnPage, listOpenByDue } from "@/lib/redis/tasks";
+import { listProjectActivities } from "@/lib/redis/activities";
+import { getUsers } from "@/lib/redis/users";
 import { formatCalendarDate, formatDuration, todayIn } from "@/lib/dates";
+import { ROLE_LABEL } from "@/lib/labels";
 import { toPublicUser } from "@/types/user";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonClasses } from "@/components/ui/button";
-import { Card, CardHeader, Progress, Stat } from "@/components/ui/primitives";
+import { Card, CardHeader, ProgressSummary, Stat } from "@/components/ui/primitives";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { TaskList } from "@/components/task/task-row";
 import { CreateTaskButton } from "@/components/task/create-task-dialog";
@@ -21,122 +22,168 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
   const now = requestTime();
   const today = todayIn(user.timezone, now);
 
-  const [tasks, { modules, members }, activity] = await Promise.all([
-    listProjectTasks(project.id),
-    loadProjectStructure(project.id),
-    listProjectActivity(project.id, 0, 8),
+  // Counts come from the stats counters and indexes; only the few tasks shown are loaded.
+  const [summaries, overdueCount, blockedPage, dueSoon, structure, preview, activity, time] = await Promise.all([
+    getProjectSummaries([project.id], 0),
+    countOverdue(project.id, today),
+    listColumnPage(project.id, "BLOCKED", 0, 5),
+    listOpenByDue(project.id, 7),
+    loadStructure(project.id),
+    loadMemberPreview(project.id),
+    listProjectActivities(project.id, 0, 8),
+    getProjectTime(project.id),
   ]);
-
-  const done = tasks.filter((t) => t.status === "DONE").length;
-  const open = tasks.filter((t) => t.status !== "DONE");
-  const overdue = open.filter((t) => t.dueDate && t.dueDate < today);
-  const tracked = tasks.reduce((sum, t) => sum + t.trackedSeconds, 0);
-  const pct = tasks.length > 0 ? (done / tasks.length) * 100 : 0;
-  const activeAssignees = new Set(open.map((t) => t.assigneeId).filter(Boolean)).size;
-
-  const attention = [...overdue, ...open.filter((t) => t.dueDate && t.dueDate >= today && !overdue.includes(t))]
-    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
-    .slice(0, 6);
+  const summary = summaries.get(project.id);
+  const total = summary?.stats.total ?? 0;
+  const done = summary?.stats.done ?? 0;
+  const openCount = Math.max(0, total - done);
+  const blockedCount = summary?.statusCounts.BLOCKED ?? 0;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const attention = [...blockedPage.tasks, ...dueSoon.filter((t) => t.status !== "BLOCKED")].slice(0, 7);
+  const perUser = Object.entries(time.byUser).sort((a, b) => b[1] - a[1]).slice(0, 6);
   const [attentionItems, actors] = await Promise.all([
-    toTaskItems(attention, [project]),
-    getUsers(activity.items.map((a) => a.actorId)),
+    toTaskItems(attention, { projects: [project], structure }),
+    getUsers([...activity.items.map((a) => a.actorId), ...perUser.map(([id]) => id)]),
   ]);
-  const actorMap = new Map([...actors].map(([id, u]) => [id, toPublicUser(u)]));
-  const ctx = createTaskContext(project, role, user.id, modules, members);
+  const actorMap = new Map([...actors].map(([id, u]) => [id, toPublicUser(u)] as const));
+  const ctx = createTaskContext(project, role, user, structure);
+  const maxModuleTime = Math.max(...structure.map((m) => m.trackedSeconds), 1);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Stat label="Progress" value={`${Math.round(pct)}%`} hint={`${done} of ${tasks.length} tasks`} />
-        <Stat label="Open tasks" value={open.length} hint={`${modules.length} modules`} />
-        <Stat label="Overdue" value={overdue.length} tone={overdue.length ? "danger" : undefined} />
-        <Stat label="Members" value={members.length} hint={`${activeAssignees} with open work`} />
-        <Stat label="Tracked" value={formatDuration(tracked)} hint="all time" />
+        <Stat label="Progres" value={`${pct}%`} hint={`${done} dari ${total} tugas`} />
+        <Stat label="Tugas terbuka" value={openCount} hint={`${structure.length} modul`} />
+        <Stat label="Terlambat" value={overdueCount} tone={overdueCount ? "danger" : undefined} />
+        <Stat label="Terhambat" value={blockedCount} tone={blockedCount ? "danger" : undefined} />
+        <Stat label="Waktu tercatat" value={formatDuration(time.totalSeconds)} hint="seluruh proyek" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-6">
-          {project.description || project.targetDate || project.startDate ? (
-            <Card className="px-4 py-3">
-              {project.description ? (
-                <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{project.description}</p>
-              ) : null}
-              {project.startDate || project.targetDate ? (
+          {project.description || project.startDate || project.dueDate ? (
+            <section>
+              {project.description ? <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{project.description}</p> : null}
+              {project.startDate || project.dueDate ? (
                 <p className="mt-2 text-xs text-muted">
-                  {project.startDate ? `Started ${formatCalendarDate(project.startDate, { year: "numeric" })}` : ""}
-                  {project.startDate && project.targetDate ? " · " : ""}
-                  {project.targetDate ? `Target ${formatCalendarDate(project.targetDate, { year: "numeric" })}` : ""}
+                  {project.startDate ? `Mulai ${formatCalendarDate(project.startDate, { year: "numeric" })}` : ""}
+                  {project.startDate && project.dueDate ? " · " : ""}
+                  {project.dueDate ? `Tenggat ${formatCalendarDate(project.dueDate, { year: "numeric" })}` : ""}
                 </p>
               ) : null}
-            </Card>
+            </section>
           ) : null}
 
           <Card>
             <CardHeader
-              title="Modules"
+              title="Modul"
               action={
-                <Link href={`/projects/${project.id}/modules`} className={buttonClasses("ghost", "sm")}>
-                  Manage <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                <Link href={`/projects/${project.id}/structure`} className={buttonClasses("ghost", "sm")}>
+                  Kelola <ArrowRight className="h-3.5 w-3.5" aria-hidden />
                 </Link>
               }
             />
             <ul className="divide-y divide-border">
-              {modules.map((m) => {
-                const mp = m.stats.total > 0 ? (m.stats.done / m.stats.total) * 100 : 0;
-                return (
-                  <li key={m.id}>
-                    <Link
-                      href={`/projects/${project.id}/modules#module-${m.id}`}
-                      className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 px-4 py-2.5 hover:bg-hover sm:grid-cols-[minmax(0,1fr)_160px_64px]"
-                    >
-                      <span className="truncate text-[13px] font-medium">{m.name}</span>
-                      <Progress value={mp} className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-1 sm:col-start-2" label={`${m.name} progress`} />
-                      <span className="tabular text-right text-xs text-muted sm:col-start-3 sm:row-start-1">
-                        {m.stats.done}/{m.stats.total}
+              {structure.map((m) => (
+                <li key={m.id}>
+                  <Link
+                    href={`/projects/${project.id}/structure#node-${m.id}`}
+                    className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 px-4 py-3 hover:bg-hover sm:grid-cols-[minmax(0,1fr)_180px]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium">{m.name}</span>
+                      <span className="block text-[11px] text-subtle">
+                        {m.subModules.length} sub modul
+                        {m.trackedSeconds > 0 ? ` · ${formatDuration(m.trackedSeconds)}` : ""}
                       </span>
-                    </Link>
-                  </li>
-                );
-              })}
+                    </span>
+                    <ProgressSummary done={m.stats.done} total={m.stats.total} />
+                  </Link>
+                </li>
+              ))}
             </ul>
           </Card>
 
           <Card>
             <CardHeader
-              title="Needs attention"
-              description="Overdue and upcoming deadlines"
+              title="Butuh perhatian"
+              description="Terhambat dan tenggat terdekat"
               action={ctx ? <CreateTaskButton context={ctx} variant="ghost" /> : null}
             />
-            <TaskList tasks={attentionItems} today={today} empty="No upcoming deadlines." />
+            <TaskList tasks={attentionItems} today={today} empty="Tidak ada tugas yang butuh perhatian." />
+          </Card>
+
+          <Card>
+            <CardHeader title="Ringkasan waktu" description={`Total ${formatDuration(time.totalSeconds)}`} />
+            <div className="grid gap-6 px-4 py-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted">Per modul</p>
+                <ul className="space-y-2">
+                  {structure.map((m) => (
+                    <li key={m.id} className="text-[13px]">
+                      <div className="mb-1 flex justify-between gap-2">
+                        <span className="truncate">{m.name}</span>
+                        <span className="tabular text-muted">{formatDuration(m.trackedSeconds)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-surface-2">
+                        <div className="h-full rounded-full bg-accent/70" style={{ width: `${(m.trackedSeconds / maxModuleTime) * 100}%` }} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted">Per anggota</p>
+                {perUser.length === 0 ? (
+                  <p className="text-[13px] text-subtle">Belum ada waktu tercatat.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {perUser.map(([id, seconds]) => {
+                      const u = actorMap.get(id);
+                      return (
+                        <li key={id} className="flex items-center gap-2 text-[13px]">
+                          <Avatar name={u?.name ?? "?"} src={u?.avatar} size="xs" />
+                          <span className="min-w-0 flex-1 truncate">{u?.name ?? "Mantan anggota"}</span>
+                          <span className="tabular font-medium">{formatDuration(seconds)}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
           </Card>
         </div>
 
         <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader
-              title="Team"
+              title={`Tim · ${preview.total}`}
               action={
                 <Link href={`/projects/${project.id}/members`} className={buttonClasses("ghost", "sm")}>
-                  View
+                  Lihat
                 </Link>
               }
             />
             <ul className="space-y-2.5 px-4 py-3">
-              {members.slice(0, 8).map((m) => (
+              {preview.members.map((m) => (
                 <li key={m.id} className="flex items-center gap-2.5">
                   <Avatar name={m.name} src={m.avatar} size="sm" />
-                  <span className="min-w-0 flex-1 truncate text-[13px]">{m.name}</span>
-                  <span className="text-[11px] text-subtle">{m.role.toLowerCase()}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px]">{m.name}</span>
+                    {m.jobTitle ? <span className="block truncate text-[11px] text-subtle">{m.jobTitle}</span> : null}
+                  </span>
+                  <span className="text-[11px] text-subtle">{ROLE_LABEL[m.role]}</span>
                 </li>
               ))}
             </ul>
           </Card>
           <Card>
             <CardHeader
-              title="Recent activity"
+              title="Aktivitas terbaru"
               action={
                 <Link href={`/projects/${project.id}/activity`} className={buttonClasses("ghost", "sm")}>
-                  All
+                  Semua
                 </Link>
               }
             />

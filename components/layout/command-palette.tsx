@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
 import {
+  Activity,
   Bell,
+  Box,
   Boxes,
   CalendarDays,
   CheckSquare,
@@ -23,27 +25,30 @@ import { Avatar } from "@/components/ui/avatar";
 import { COMMAND_PALETTE_EVENT } from "./command-events";
 
 const PAGES: { label: string; href: string; icon: LucideIcon }[] = [
-  { label: "Home", href: "/dashboard", icon: Home },
-  { label: "My tasks", href: "/my-tasks", icon: CheckSquare },
-  { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Calendar", href: "/calendar", icon: CalendarDays },
-  { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Profile", href: "/profile", icon: UserIcon },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Dasbor", href: "/dashboard", icon: Home },
+  { label: "Tugas Saya", href: "/my-tasks", icon: CheckSquare },
+  { label: "Proyek Saya", href: "/projects", icon: FolderKanban },
+  { label: "Jadwal", href: "/calendar", icon: CalendarDays },
+  { label: "Notifikasi", href: "/notifications", icon: Bell },
+  { label: "Aktivitas", href: "/activity", icon: Activity },
+  { label: "Profil", href: "/profile", icon: UserIcon },
+  { label: "Pengaturan", href: "/settings", icon: Settings },
 ];
 
 const KIND_ICON: Record<SearchResult["kind"], LucideIcon> = {
   project: FolderKanban,
   module: Boxes,
+  submodule: Box,
   task: CircleDot,
   member: UserIcon,
 };
 
 const GROUP_LABEL: Record<SearchResult["kind"], string> = {
-  project: "Projects",
-  module: "Modules",
-  task: "Tasks",
-  member: "Members",
+  project: "Proyek",
+  module: "Modul",
+  submodule: "Sub modul",
+  task: "Tugas",
+  member: "Anggota",
 };
 
 const itemClass =
@@ -102,7 +107,7 @@ export function CommandPalette() {
     router.push(href);
   }
 
-  const groups = (["project", "module", "task", "member"] as const)
+  const groups = (["project", "module", "submodule", "task", "member"] as const)
     .map((kind) => ({ kind, items: results.filter((r) => r.kind === kind) }))
     .filter((g) => g.items.length > 0);
 
@@ -111,11 +116,11 @@ export function CommandPalette() {
       <D.Portal>
         <D.Overlay className="animate-fade-in fixed inset-0 z-50 bg-black/40" />
         <D.Content
-          className="animate-pop-in fixed left-1/2 top-[14vh] z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-surface shadow-pop focus:outline-none"
+          className="animate-pop-in fixed left-1/2 top-[12vh] z-50 w-[calc(100vw-1.5rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-surface shadow-pop focus:outline-none"
           aria-describedby={undefined}
         >
-          <D.Title className="sr-only">Search</D.Title>
-          <Command shouldFilter={false} label="Search">
+          <D.Title className="sr-only">Pencarian</D.Title>
+          <Command shouldFilter={false} label="Pencarian">
             <div className="flex items-center gap-2 border-b border-border px-3">
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-subtle" aria-hidden />
@@ -125,13 +130,13 @@ export function CommandPalette() {
               <Command.Input
                 value={query}
                 onValueChange={onQueryChange}
-                placeholder="Search projects, modules, tasks and people…"
+                placeholder="Cari proyek, modul, tugas, atau orang…"
                 className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-subtle"
               />
             </div>
             <Command.List className="max-h-[50vh] overflow-y-auto p-1.5">
               {query.trim().length < 2 ? (
-                <Command.Group heading="Go to" className="text-[11px] text-subtle [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5">
+                <Command.Group heading="Buka halaman" className="text-[11px] text-subtle [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5">
                   {PAGES.map(({ label, href, icon: Icon }) => (
                     <Command.Item key={href} value={href} onSelect={() => go(href)} className={itemClass}>
                       <Icon className="h-4 w-4 text-muted" aria-hidden />
@@ -142,7 +147,7 @@ export function CommandPalette() {
               ) : (
                 <>
                   {!loading && groups.length === 0 ? (
-                    <p className="px-3 py-8 text-center text-[13px] text-muted">No results for “{query.trim()}”.</p>
+                    <p className="px-3 py-8 text-center text-[13px] text-muted">Tidak ada hasil untuk “{query.trim()}”.</p>
                   ) : null}
                   {groups.map((group) => (
                     <Command.Group

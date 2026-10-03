@@ -4,5 +4,5 @@ export const verifyTokenSchema = z.object({
   token: z
     .string()
     .trim()
-    .regex(/^[A-Za-z0-9_-]{20,100}$/, { message: "This verification link is invalid." }),
+    .regex(/^[A-Za-z0-9_-]{20,100}$/, { message: "Tautan verifikasi tidak valid." }),
 });

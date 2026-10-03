@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NewProjectDialog } from "./new-project-dialog";
 
-export function NewProjectButton({ label = "New project" }: { label?: string }) {
+export function NewProjectButton({ label = "Proyek baru" }: { label?: string }) {
   return (
     <NewProjectDialog
       trigger={(open) => (

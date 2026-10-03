@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { redis } from "@/lib/redis/client";
-import { keys } from "@/lib/redis/keys";
+import { redis } from "./client";
+import { keys } from "./keys";
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24;
 

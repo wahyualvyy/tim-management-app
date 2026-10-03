@@ -28,7 +28,7 @@ export function GoogleSignInButton({ callbackUrl }: { callbackUrl: string }) {
       className="flex h-10 w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-surface text-sm font-medium shadow-sm transition-colors hover:bg-hover disabled:opacity-60"
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <GoogleIcon />}
-      Continue with Google
+      Masuk dengan Google
     </button>
   );
 }

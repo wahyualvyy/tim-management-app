@@ -6,6 +6,7 @@ import { createProjectAction } from "@/app/actions/project/create-project";
 import { useAction } from "@/components/hooks/use-action";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { createProjectSchema } from "@/schemas/project.schema";
 import { ProjectFormFields } from "./project-form-fields";
 
 /** Renders its trigger and owns the "new project" dialog. */
@@ -14,10 +15,11 @@ export function NewProjectDialog({ trigger }: { trigger: (open: () => void) => R
   const [formKey, setFormKey] = useState(0);
   const router = useRouter();
   const { run, pending, fieldErrors } = useAction(createProjectAction, {
-    successMessage: "Project created",
+    schema: createProjectSchema,
+    successMessage: "Proyek berhasil dibuat.",
     onSuccess: ({ projectId }) => {
       setOpen(false);
-      router.push(`/projects/${projectId}`);
+      router.push(`/projects/${projectId}/structure`);
     },
   });
 
@@ -30,15 +32,15 @@ export function NewProjectDialog({ trigger }: { trigger: (open: () => void) => R
       <Dialog
         open={open}
         onOpenChange={setOpen}
-        title="New project"
-        description="Projects hold modules, and modules hold tasks."
+        title="Proyek baru"
+        description="Susun proyek menjadi modul, sub modul, dan tugas."
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              Batal
             </Button>
             <Button variant="primary" type="submit" form="new-project-form" loading={pending}>
-              Create project
+              Buat proyek
             </Button>
           </>
         }
@@ -46,6 +48,7 @@ export function NewProjectDialog({ trigger }: { trigger: (open: () => void) => R
         <form
           id="new-project-form"
           key={formKey}
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             void run(new FormData(e.currentTarget));

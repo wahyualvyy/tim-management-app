@@ -1,35 +1,29 @@
 "use server";
 
-import { requireActionUser } from "@/lib/auth/session";
+import { assertWritable, requireAuth, requireTaskAccess } from "@/lib/auth/guards";
 import { parseInput, runAction } from "@/lib/actions";
-import { assertWritable, getTaskAccess } from "@/lib/domain/access";
-import { deleteTask, listAttachments } from "@/lib/redis/repositories/task.repository";
-import { recordActivity } from "@/lib/redis/repositories/activity.repository";
+import { deleteTask } from "@/lib/redis/tasks";
+import { listAttachments } from "@/lib/redis/attachments";
+import { recordActivity } from "@/lib/redis/activities";
 import { canDeleteTask } from "@/lib/permissions";
 import { ForbiddenError } from "@/lib/errors";
-import { getStorage } from "@/lib/storage";
+import { removeStoredFile } from "@/lib/storage";
 import { revalidateApp } from "@/lib/revalidate";
 import { taskRef } from "@/lib/utils";
 import { taskIdSchema } from "@/schemas/task.schema";
 import type { ActionResult } from "@/types/action";
 
 export async function deleteTaskAction(input: unknown): Promise<ActionResult> {
-  return runAction(async () => {
-    const user = await requireActionUser();
+  return runAction("deleteTask", async () => {
+    const user = await requireAuth();
     const { taskId } = parseInput(taskIdSchema, input);
-    const { task, project, role } = await getTaskAccess(taskId, user.id);
+    const { task, project, role } = await requireTaskAccess(user, taskId);
     assertWritable(project);
-    if (!canDeleteTask(role, task, user.id)) throw new ForbiddenError("You can't delete this task.");
+    if (!canDeleteTask(role, task, user.id)) throw new ForbiddenError("Anda tidak dapat menghapus tugas ini.");
 
     const attachments = await listAttachments(task.id);
-    const deleted = await deleteTask(task);
-    if (!deleted) return undefined;
-
-    // Best effort: remove stored files after the records are gone.
-    const storage = getStorage();
-    if (storage) {
-      await Promise.allSettled(attachments.map((a) => storage.remove(a.url)));
-    }
+    if (!(await deleteTask(task, project.key))) return undefined;
+    await Promise.allSettled(attachments.map((a) => removeStoredFile(a.url)));
     await recordActivity({
       type: "task.deleted",
       projectId: project.id,

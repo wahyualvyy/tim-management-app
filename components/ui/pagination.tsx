@@ -23,18 +23,18 @@ export function Pagination({
     return s ? `${basePath}?${s}` : basePath;
   };
   return (
-    <nav className="mt-4 flex items-center justify-between" aria-label="Pagination">
+    <nav className="mt-4 flex items-center justify-between" aria-label="Halaman">
       {page > 1 ? (
         <Link href={href(page - 1)} className={buttonClasses("outline", "sm")}>
-          <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Newer
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Sebelumnya
         </Link>
       ) : (
         <span />
       )}
-      <span className="text-xs text-subtle">Page {page}</span>
+      <span className="text-xs text-subtle">Halaman {page}</span>
       {hasMore ? (
         <Link href={href(page + 1)} className={buttonClasses("outline", "sm")}>
-          Older <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          Berikutnya <ChevronRight className="h-3.5 w-3.5" aria-hidden />
         </Link>
       ) : (
         <span />

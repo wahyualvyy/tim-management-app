@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { AppError } from "@/lib/errors";
+import { logError } from "@/lib/log";
 import type { ActionResult, FieldErrors } from "@/types/action";
 
 export class ValidationError extends AppError {
@@ -8,24 +9,9 @@ export class ValidationError extends AppError {
     message: string,
     public readonly fieldErrors: FieldErrors,
   ) {
-    super(message);
+    super(message, "VALIDATION");
     this.name = "ValidationError";
   }
-}
-
-/**
- * Parse untrusted input (FormData or a plain object) with a Zod schema,
- * throwing a ValidationError with field messages.
- */
-export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
-  const raw = input instanceof FormData ? formDataToObject(input) : input;
-  const result = schema.safeParse(raw);
-  if (!result.success) {
-    const fieldErrors = z.flattenError(result.error).fieldErrors as FieldErrors;
-    const first = result.error.issues[0]?.message ?? "Please check the highlighted fields.";
-    throw new ValidationError(first, fieldErrors);
-  }
-  return result.data;
 }
 
 /** Convert FormData to a plain object; repeated keys become arrays. */
@@ -42,28 +28,42 @@ export function formDataToObject(formData: FormData): Record<string, unknown> {
 }
 
 /**
- * Runs an action body and converts failures to a predictable result.
- * Known AppErrors carry user-safe messages; anything else is logged and
- * reported generically so internals never reach the client.
+ * Parse untrusted input (FormData or a plain object) with a Zod schema,
+ * throwing a ValidationError with per-field messages.
  */
-export async function runAction<T>(body: () => Promise<T>): Promise<ActionResult<T>> {
+export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
+  const raw = input instanceof FormData ? formDataToObject(input) : input;
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    const fieldErrors = z.flattenError(result.error).fieldErrors as FieldErrors;
+    const first = result.error.issues[0]?.message ?? "Periksa kembali isian Anda.";
+    throw new ValidationError(first, fieldErrors);
+  }
+  return result.data;
+}
+
+/**
+ * Runs an action body and converts failures to a predictable result.
+ * AppErrors carry user-safe messages; anything else is logged with context
+ * for developers and reported generically to the user.
+ */
+export async function runAction<T>(name: string, body: () => Promise<T>): Promise<ActionResult<T>> {
   try {
-    const data = await body();
-    return { ok: true, data };
+    return { ok: true, data: await body() };
   } catch (error) {
     if (error instanceof ValidationError) {
-      return { ok: false, error: error.message, fieldErrors: error.fieldErrors };
+      return { ok: false, error: error.message, code: error.code, fieldErrors: error.fieldErrors };
     }
     if (error instanceof AppError) {
-      return { ok: false, error: error.message };
+      return { ok: false, error: error.message, code: error.code, meta: error.meta };
     }
-    if (isRedirectOrNotFound(error)) throw error;
-    console.error("Action failed", error);
-    return { ok: false, error: "Something went wrong. Please try again." };
+    if (isNextControlFlow(error)) throw error;
+    logError(`action:${name}`, error);
+    return { ok: false, error: "Terjadi kesalahan. Silakan coba lagi.", code: "INTERNAL" };
   }
 }
 
-function isRedirectOrNotFound(error: unknown): boolean {
+function isNextControlFlow(error: unknown): boolean {
   if (!error || typeof error !== "object" || !("digest" in error)) return false;
   const digest = (error as { digest: unknown }).digest;
   return typeof digest === "string" && (digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_HTTP_ERROR"));

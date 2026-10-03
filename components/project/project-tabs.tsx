@@ -8,16 +8,17 @@ export function ProjectTabs({ projectId, showSettings }: { projectId: string; sh
   const pathname = usePathname();
   const base = `/projects/${projectId}`;
   const tabs = [
-    { href: base, label: "Overview" },
-    { href: `${base}/board`, label: "Board" },
-    { href: `${base}/modules`, label: "Modules" },
-    { href: `${base}/tasks`, label: "Tasks" },
-    { href: `${base}/activity`, label: "Activity" },
-    { href: `${base}/members`, label: "Members" },
-    ...(showSettings ? [{ href: `${base}/settings`, label: "Settings" }] : []),
+    { href: base, label: "Ringkasan" },
+    { href: `${base}/board`, label: "Papan" },
+    { href: `${base}/structure`, label: "Modul" },
+    { href: `${base}/tasks`, label: "Tugas" },
+    { href: `${base}/schedule`, label: "Jadwal" },
+    { href: `${base}/activity`, label: "Aktivitas" },
+    { href: `${base}/members`, label: "Anggota" },
+    ...(showSettings ? [{ href: `${base}/settings`, label: "Pengaturan" }] : []),
   ];
   return (
-    <nav className="scroll-thin -mx-4 overflow-x-auto border-b border-border px-4 sm:mx-0 sm:px-0" aria-label="Project">
+    <nav className="scroll-thin -mx-4 overflow-x-auto border-b border-border px-4 sm:mx-0 sm:px-0" aria-label="Navigasi proyek">
       <div className="flex min-w-max gap-5">
         {tabs.map((tab) => {
           const active = tab.href === base ? pathname === base : pathname.startsWith(tab.href);

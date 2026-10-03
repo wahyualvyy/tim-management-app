@@ -1,44 +1,38 @@
 import { z } from "zod";
-import { PROJECT_ICONS, PROJECT_STATUSES } from "@/types/project";
+import { PROJECT_COLORS, PROJECT_ICONS, PROJECT_STATUSES } from "@/types/project";
 import { checkboxSchema, idSchema, optionalDateSchema, requiredText, text } from "./common";
 
 export const projectKeySchema = z
-  .string({ message: "Key is required." })
+  .string({ message: "Kode wajib diisi." })
   .trim()
   .toUpperCase()
-  .regex(/^[A-Z][A-Z0-9]{1,5}$/, { message: "Use 2–6 letters or digits, starting with a letter." });
+  .regex(/^[A-Z][A-Z0-9]{1,5}$/, { message: "Gunakan 2–6 huruf/angka, diawali huruf." });
 
-const projectFields = {
-  name: requiredText("Name", 80),
+const fields = {
+  name: requiredText("Nama proyek", 80),
   key: projectKeySchema,
   description: text(2000).default(""),
   icon: z.enum(PROJECT_ICONS).default("folder"),
+  color: z.enum(PROJECT_COLORS).default("blue"),
   status: z.enum(PROJECT_STATUSES).default("ACTIVE"),
   startDate: optionalDateSchema,
-  targetDate: optionalDateSchema,
+  dueDate: optionalDateSchema,
 };
 
-function datesInOrder(v: { startDate: string | null; targetDate: string | null }): boolean {
-  return !v.startDate || !v.targetDate || v.startDate <= v.targetDate;
+function datesInOrder(v: { startDate: string | null; dueDate: string | null }): boolean {
+  return !v.startDate || !v.dueDate || v.startDate <= v.dueDate;
 }
+const dateMessage = { message: "Tenggat harus setelah tanggal mulai.", path: ["dueDate"] };
 
-export const createProjectSchema = z
-  .object(projectFields)
-  .refine(datesInOrder, { message: "Target date must be after the start date.", path: ["targetDate"] });
+export const createProjectSchema = z.object(fields).refine(datesInOrder, dateMessage);
 
 export const updateProjectSchema = z
-  .object({
-    projectId: idSchema,
-    ...projectFields,
-    allowViewerComments: checkboxSchema,
-  })
-  .refine(datesInOrder, { message: "Target date must be after the start date.", path: ["targetDate"] });
+  .object({ projectId: idSchema, ...fields, allowViewerComments: checkboxSchema })
+  .refine(datesInOrder, dateMessage);
 
-export const projectIdSchema = z.object({ projectId: idSchema });
+export const projectStatusSchema = z.object({ projectId: idSchema, status: z.enum(PROJECT_STATUSES) });
 
 export const deleteProjectSchema = z.object({
   projectId: idSchema,
   confirmKey: z.string().trim().toUpperCase(),
 });
-
-export type CreateProjectValues = z.infer<typeof createProjectSchema>;

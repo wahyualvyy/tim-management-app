@@ -31,7 +31,7 @@ export function Avatar({
   if (src) {
     return (
       <span className={base}>
-        <Image src={src} alt={name} width={pixels[size]} height={pixels[size]} className="h-full w-full object-cover" />
+        <Image src={src} alt={name} width={pixels[size]} height={pixels[size]} unoptimized className="h-full w-full object-cover" />
       </span>
     );
   }

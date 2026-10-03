@@ -6,7 +6,7 @@ import { taskHref } from "@/lib/utils";
 import type { Activity } from "@/types/activity";
 import type { PublicUser } from "@/types/user";
 
-/** Timeline of activity entries. Server component: no client JS. */
+/** Activity timeline. Server component: no client JavaScript. */
 export function ActivityFeed({
   items,
   users,
@@ -20,18 +20,14 @@ export function ActivityFeed({
   projectNames?: Map<string, string>;
   compact?: boolean;
 }) {
-  if (items.length === 0) {
-    return <p className="px-4 py-6 text-center text-[13px] text-subtle">No activity yet.</p>;
-  }
+  if (items.length === 0) return <p className="px-4 py-6 text-center text-[13px] text-subtle">Belum ada aktivitas.</p>;
   return (
     <ol className={compact ? "divide-y divide-border" : "relative ml-3 space-y-5 border-l border-border py-1 pl-6"}>
       {items.map((a) => {
         const actor = users.get(a.actorId);
-        const text = describeActivity(a);
         const line = (
           <>
-            <span className="font-medium text-fg">{actor?.name ?? "Former member"}</span>{" "}
-            <span className="text-muted">{text}</span>
+            <span className="font-medium text-fg">{actor?.name ?? "Mantan anggota"}</span> <span className="text-muted">{describeActivity(a)}</span>
           </>
         );
         return (
@@ -40,7 +36,7 @@ export function ActivityFeed({
               <Avatar name={actor?.name ?? "?"} src={actor?.avatar} size="xs" className="mt-0.5" />
             ) : (
               <span className="absolute -left-[35px] top-0">
-                <Avatar name={actor?.name ?? "?"} src={actor?.avatar} size="sm" />
+                <Avatar name={actor?.name ?? "?"} src={actor?.avatar} size="sm" className="ring-4 ring-background" />
               </span>
             )}
             <div className="min-w-0 flex-1 text-[13px] leading-snug">

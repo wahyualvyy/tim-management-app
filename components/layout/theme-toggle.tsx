@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import type { ThemePreference } from "@/types/user";
 
 const OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Terang", icon: Sun },
+  { value: "dark", label: "Gelap", icon: Moon },
+  { value: "system", label: "Ikuti sistem", icon: Monitor },
 ];
 
 const subscribeNoop = () => () => {};
@@ -36,7 +36,7 @@ export function ThemeToggle({ persist = true, className }: { persist?: boolean; 
   return (
     <div
       role="radiogroup"
-      aria-label="Theme"
+      aria-label="Tema"
       className={cn("inline-flex rounded-lg border border-border bg-surface-2 p-0.5", className)}
     >
       {OPTIONS.map(({ value, label, icon: Icon }) => {

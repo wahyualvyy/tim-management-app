@@ -1,10 +1,12 @@
 export const NOTIFICATION_TYPES = [
-  "task.assigned",
-  "comment.mention",
-  "comment.watched",
-  "task.review",
-  "task.deadline",
   "project.invited",
+  "task.assigned",
+  "task.status_changed",
+  "task.review_requested",
+  "task.completed",
+  "task.deadline",
+  "comment.mention",
+  "comment.added",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

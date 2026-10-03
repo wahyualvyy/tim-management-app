@@ -1,30 +1,35 @@
-export const TASK_STATUSES = ["BACKLOG", "TODO", "IN_PROGRESS", "REVIEW", "DONE"] as const;
+export const TASK_STATUSES = ["TODO", "IN_PROGRESS", "REVIEW", "BLOCKED", "DONE"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
-export const TASK_PRIORITIES = ["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+export const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 export interface Task {
   id: string;
   projectId: string;
   moduleId: string;
-  /** Human readable reference, e.g. "WEB-12". */
+  /** Tasks normally belong to a sub module; null means directly under the module. */
+  subModuleId: string | null;
+  /** Human readable number within the project, e.g. 12 in "WEB-12". */
   number: number;
   title: string;
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assigneeId: string | null;
+  assigneeIds: string[];
   creatorId: string;
   /** ISO calendar date (YYYY-MM-DD) or null. */
   startDate: string | null;
   /** ISO calendar date (YYYY-MM-DD) or null. */
   dueDate: string | null;
   labels: string[];
-  estimateMinutes: number | null;
+  estimatedMinutes: number | null;
+  /** Sum of finalized time logs, in seconds. Running timers are not included. */
   trackedSeconds: number;
   completionNotes: string;
   completedAt: number | null;
+  /** Position within its board column; lower comes first. */
+  order: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -32,10 +37,12 @@ export interface Task {
 export interface Attachment {
   id: string;
   taskId: string;
-  name: string;
   url: string;
+  filename: string;
+  mimeType: string;
   size: number;
-  contentType: string;
+  /** True when uploaded as proof of completion. */
+  isProof: boolean;
   uploadedBy: string;
   createdAt: number;
 }

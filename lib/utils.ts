@@ -8,8 +8,9 @@ export function newId(): string {
   return crypto.randomUUID();
 }
 
+/** Up to two initials from words that start with a letter ("Alice Wijaya (Anda)" → "AW"). */
 export function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const parts = name.trim().split(/\s+/).filter((p) => /^\p{L}/u.test(p));
   if (parts.length === 0) return "?";
   const first = parts[0]?.[0] ?? "";
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
@@ -22,11 +23,6 @@ export function safeRedirectPath(value: string | null | undefined, fallback = "/
     return fallback;
   }
   return value;
-}
-
-/** The mention handle for a member: the local part of their email. */
-export function emailHandle(email: string): string {
-  return (email.split("@")[0] ?? email).toLowerCase();
 }
 
 export function taskRef(projectKey: string, taskNumber: number): string {

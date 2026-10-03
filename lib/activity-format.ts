@@ -1,54 +1,78 @@
+import { PROJECT_STATUS_LABEL, ROLE_LABEL, TASK_STATUS_LABEL } from "@/lib/labels";
+import { PROJECT_ROLES, PROJECT_STATUSES, type ProjectRole, type ProjectStatus } from "@/types/project";
+import { TASK_STATUSES, type TaskStatus } from "@/types/task";
 import type { Activity } from "@/types/activity";
 
-/** Human sentence for an activity entry, without the actor's name. */
+function statusLabel(value: string | undefined): string {
+  return value && (TASK_STATUSES as readonly string[]).includes(value) ? TASK_STATUS_LABEL[value as TaskStatus] : (value ?? "");
+}
+
+function roleLabel(value: string | undefined): string {
+  return value && (PROJECT_ROLES as readonly string[]).includes(value)
+    ? ROLE_LABEL[value as ProjectRole].toLowerCase()
+    : "anggota";
+}
+
+function projectStatusLabel(value: string | undefined): string {
+  return value && (PROJECT_STATUSES as readonly string[]).includes(value)
+    ? PROJECT_STATUS_LABEL[value as ProjectStatus].toLowerCase()
+    : (value ?? "");
+}
+
+/** Indonesian sentence for an activity entry, without the actor's name. */
 export function describeActivity(a: Activity): string {
   const m = a.meta;
+  const ref = m.ref ? `${m.ref} ` : "";
   switch (a.type) {
     case "project.created":
-      return "created the project";
+      return "membuat proyek";
     case "project.updated":
-      return "updated project settings";
-    case "project.archived":
-      return "archived the project";
-    case "project.restored":
-      return "restored the project";
+      return "memperbarui pengaturan proyek";
+    case "project.status_changed":
+      return `mengubah status proyek menjadi ${projectStatusLabel(m.to)}`;
     case "member.added":
-      return `added ${a.subject} as ${(m.role ?? "member").toLowerCase()}`;
+      return `menambahkan ${a.subject} sebagai ${roleLabel(m.role)}`;
     case "member.removed":
-      return `removed ${a.subject}`;
+      return `mengeluarkan ${a.subject}`;
     case "member.role_changed":
-      return `changed ${a.subject}'s role from ${(m.from ?? "").toLowerCase()} to ${(m.to ?? "").toLowerCase()}`;
+      return `mengubah peran ${a.subject} menjadi ${roleLabel(m.to)}`;
     case "module.created":
-      return `created module ${a.subject}`;
+      return `membuat modul ${a.subject}`;
     case "module.updated":
-      return `updated module ${a.subject}`;
+      return `memperbarui modul ${a.subject}`;
     case "module.deleted":
-      return `deleted module ${a.subject}`;
+      return `menghapus modul ${a.subject}`;
+    case "submodule.created":
+      return `membuat sub modul ${a.subject}`;
+    case "submodule.updated":
+      return `memperbarui sub modul ${a.subject}`;
+    case "submodule.deleted":
+      return `menghapus sub modul ${a.subject}`;
     case "task.created":
-      return `created ${m.ref ? `${m.ref} ` : ""}${a.subject}`;
+      return `membuat tugas ${ref}${a.subject}`;
     case "task.updated":
-      return `edited ${a.subject}`;
+      return `mengubah tugas ${a.subject}`;
     case "task.status_changed":
-      return `moved ${a.subject} from ${m.from} to ${m.to}`;
+      return `memindahkan ${a.subject} dari ${statusLabel(m.from)} ke ${statusLabel(m.to)}`;
     case "task.assigned":
-      return m.to === "Unassigned" ? `unassigned ${a.subject}` : `assigned ${a.subject} to ${m.to}`;
+      return m.to ? `menugaskan ${a.subject} kepada ${m.to}` : `menghapus penugasan ${a.subject}`;
     case "task.due_changed":
-      return m.to === "none" ? `cleared the due date of ${a.subject}` : `set ${a.subject} due ${m.to}`;
-    case "task.completed":
-      return `completed ${a.subject}`;
-    case "task.deleted":
-      return `deleted ${m.ref ? `${m.ref} ` : ""}${a.subject}`;
+      return m.to && m.to !== "none" ? `mengubah tenggat ${a.subject} menjadi ${m.to}` : `menghapus tenggat ${a.subject}`;
     case "task.moved":
-      return `moved ${a.subject} to ${m.to}`;
+      return `memindahkan ${a.subject} ke ${m.to}`;
+    case "task.completed":
+      return `menyelesaikan ${a.subject}`;
+    case "task.deleted":
+      return `menghapus tugas ${ref}${a.subject}`;
     case "comment.added":
-      return `commented on ${a.subject}`;
+      return `berkomentar di ${a.subject}`;
     case "timer.started":
-      return `started a timer on ${a.subject}`;
+      return `menjalankan timer pada ${a.subject}`;
     case "timer.stopped":
-      return `tracked ${m.duration ?? "time"} on ${a.subject}`;
+      return `mencatat ${m.duration ?? "waktu"} pada ${a.subject}`;
     case "time.logged":
-      return `logged ${m.duration ?? "time"} on ${a.subject}`;
+      return `menambahkan ${m.duration ?? "waktu"} secara manual pada ${a.subject}`;
     case "attachment.added":
-      return `attached ${m.file ?? "a file"} to ${a.subject}`;
+      return `melampirkan ${m.file ?? "berkas"} pada ${a.subject}`;
   }
 }

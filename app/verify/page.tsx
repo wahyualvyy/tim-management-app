@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Logo } from "@/components/layout/logo";
 import { VerifyEmailCard } from "./verify-card";
 
-export const metadata: Metadata = { title: "Verify email" };
+export const metadata: Metadata = { title: "Verifikasi email" };
 
 export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;

@@ -3,62 +3,65 @@
 import Link from "next/link";
 import { Square } from "lucide-react";
 import { formatClock } from "@/lib/dates";
+import { totalWithRunning } from "@/lib/timer";
 import { cn, taskHref } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/menu";
 import { useNow } from "./clock";
 import { useTimer } from "./timer-provider";
 
-export function ElapsedClock({ startedAt, className }: { startedAt: number; className?: string }) {
+/** Elapsed time of a running session, computed from its server start timestamp. */
+export function ElapsedClock({ startedAt, baseSeconds = 0, className }: { startedAt: number; baseSeconds?: number; className?: string }) {
   const now = useNow();
-  // Before the clock mounts, render a stable placeholder to avoid hydration mismatches.
-  const seconds = now === 0 ? null : Math.max(0, (now - startedAt) / 1000);
-  return <span className={cn("tabular font-mono", className)}>{seconds === null ? "--:--:--" : formatClock(seconds)}</span>;
+  // Before the clock mounts, show a stable placeholder so server and client HTML match.
+  const text = now === 0 ? "--:--:--" : formatClock(totalWithRunning(baseSeconds, startedAt, now));
+  return <span className={cn("tabular font-mono", className)}>{text}</span>;
 }
 
-/** Compact global indicator used in the sidebar (expanded or collapsed) and the mobile top bar. */
+export function RunningDot({ className }: { className?: string }) {
+  return <span className={cn("animate-pulse-dot inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent", className)} aria-hidden />;
+}
+
+/** Global indicator in the sidebar (expanded or collapsed). Clicking opens the task. */
 export function ActiveTimerCard({ collapsed = false }: { collapsed?: boolean }) {
   const { timer, stop, pending } = useTimer();
   if (!timer) return null;
+  const href = taskHref(timer.projectId, timer.taskId);
 
   if (collapsed) {
     return (
-      <Tooltip content={`${timer.taskRef} · ${timer.taskTitle}`} side="right">
-        <button
-          type="button"
-          onClick={stop}
-          disabled={pending}
-          className="mx-auto flex h-9 w-9 items-center justify-center rounded-md bg-accent-soft text-accent hover:opacity-80"
-          aria-label="Stop timer"
+      <Tooltip content={`Sedang berjalan · ${timer.taskTitle}`} side="right">
+        <Link
+          href={href}
+          className="mx-auto flex h-9 w-9 items-center justify-center rounded-md bg-accent-soft text-accent"
+          aria-label={`Timer berjalan: ${timer.taskTitle}`}
         >
-          <Square className="h-3.5 w-3.5 fill-current" />
-        </button>
+          <RunningDot className="h-2 w-2" />
+        </Link>
       </Tooltip>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface-2 p-2.5">
-      <div className="flex items-center gap-1.5 text-[11px] font-medium text-accent">
-        <span className="animate-pulse-dot h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
-        Running
-      </div>
-      <Link
-        href={taskHref(timer.projectId, timer.taskId)}
-        className="mt-1 block truncate text-[13px] font-medium hover:underline"
-        title={timer.taskTitle}
-      >
-        {timer.taskTitle}
+    <div className="rounded-lg bg-accent-soft p-2.5">
+      <Link href={href} className="block min-w-0 rounded-md focus-visible:outline-offset-4" aria-label={`Buka tugas ${timer.taskTitle}`}>
+        <span className="flex items-center gap-1.5 text-[11px] font-medium text-accent">
+          <RunningDot />
+          Sedang berjalan
+        </span>
+        <span className="mt-1 block truncate text-[13px] font-medium" title={timer.taskTitle}>
+          {timer.taskTitle}
+        </span>
       </Link>
       <div className="mt-1.5 flex items-center justify-between gap-2">
-        <ElapsedClock startedAt={timer.startedAt} className="text-sm" />
+        <ElapsedClock startedAt={timer.startedAt} className="text-sm text-fg" />
         <button
           type="button"
           onClick={stop}
           disabled={pending}
-          className="inline-flex h-6 items-center gap-1 rounded-md border border-border bg-surface px-2 text-xs font-medium hover:bg-hover disabled:opacity-50"
+          className="inline-flex h-6 items-center gap-1 rounded-md bg-surface px-2 text-xs font-medium shadow-sm hover:bg-hover disabled:opacity-50"
         >
           <Square className="h-3 w-3 fill-current" aria-hidden />
-          Stop
+          Berhenti
         </button>
       </div>
     </div>
@@ -71,18 +74,18 @@ export function MobileTimerBar() {
   if (!timer) return null;
   return (
     <div className="fixed inset-x-3 bottom-3 z-30 flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2 shadow-pop lg:hidden">
-      <span className="animate-pulse-dot h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden />
+      <RunningDot className="h-2 w-2" />
       <Link href={taskHref(timer.projectId, timer.taskId)} className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-medium">{timer.taskTitle}</p>
-        <p className="text-[11px] text-muted">{timer.taskRef}</p>
+        <p className="text-[11px] text-muted">Sedang berjalan{timer.taskRef ? ` · ${timer.taskRef}` : ""}</p>
       </Link>
       <ElapsedClock startedAt={timer.startedAt} className="text-sm" />
       <button
         type="button"
         onClick={stop}
         disabled={pending}
-        className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-accent-fg disabled:opacity-50"
-        aria-label="Stop timer"
+        className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-fg disabled:opacity-50"
+        aria-label="Hentikan timer"
       >
         <Square className="h-3.5 w-3.5 fill-current" />
       </button>

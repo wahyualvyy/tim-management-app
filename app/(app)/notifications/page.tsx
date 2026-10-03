@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Bell } from "lucide-react";
 import { requireUser } from "@/lib/auth/session";
-import { countUnread, listNotifications } from "@/lib/redis/repositories/notification.repository";
-import { getUsers } from "@/lib/redis/repositories/user.repository";
+import { countUnread, listNotifications } from "@/lib/redis/notifications";
+import { getUsers } from "@/lib/redis/users";
 import { requestTime } from "@/lib/domain/views";
 import { Card, EmptyState, PageHeader } from "@/components/ui/primitives";
 import { Pagination, parsePage } from "@/components/ui/pagination";
-import { MarkAllReadButton, NotificationItem } from "@/components/notifications/notification-item";
+import { MarkAllReadButton, NotificationItem } from "@/components/notification/notification-item";
 
-export const metadata: Metadata = { title: "Notifications" };
+export const metadata: Metadata = { title: "Notifikasi" };
 
 const PAGE_SIZE = 30;
 
@@ -25,29 +25,22 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   return (
     <>
       <PageHeader
-        title="Notifications"
-        description={unread > 0 ? `${unread} unread` : "You're all caught up."}
+        title="Notifikasi"
+        description={unread > 0 ? `${unread} belum dibaca` : "Semua notifikasi sudah dibaca."}
         actions={unread > 0 ? <MarkAllReadButton /> : null}
       />
       <Card>
         {items.length === 0 ? (
           <EmptyState
             icon={<Bell className="h-5 w-5" />}
-            title="No notifications"
-            description="You'll hear about assignments, mentions, reviews and upcoming deadlines here."
+            title="Belum ada notifikasi"
+            description="Penugasan, sebutan di komentar, permintaan tinjauan, dan tenggat yang mendekat akan muncul di sini."
           />
         ) : (
           <ul className="divide-y divide-border">
             {items.map((n) => {
               const actor = n.actorId ? actors.get(n.actorId) : undefined;
-              return (
-                <NotificationItem
-                  key={n.id}
-                  notification={n}
-                  actor={actor ? { name: actor.name, avatar: actor.avatar } : null}
-                  now={now}
-                />
-              );
+              return <NotificationItem key={n.id} notification={n} actor={actor ? { name: actor.name, avatar: actor.avatar } : null} now={now} />;
             })}
           </ul>
         )}

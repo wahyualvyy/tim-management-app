@@ -5,6 +5,11 @@
 /*
  * Design tokens. Both themes are defined explicitly rather than inverted:
  * dark surfaces step up in lightness for elevation, borders stay low contrast.
+ *
+ * Radius scale (use only these):
+ *   rounded-md  controls: buttons, inputs, menu items, chips
+ *   rounded-lg  panels: cards, board columns, task cards
+ *   rounded-xl  overlays: dialogs, popovers, command palette, toasts
  */
 :root {
   --background: #f7f7f8;
@@ -26,8 +31,10 @@
   --success-soft: #208a4e17;
   --warning: #b86e00;
   --warning-soft: #b86e0017;
+  --info: #2f6fd1;
+  --info-soft: #2f6fd114;
   --ring: #5550d866;
-  --shadow: 0 1px 2px #1717200d, 0 4px 16px #1717200a;
+  --shadow: 0 1px 2px #1717200a;
   --shadow-lg: 0 8px 32px #17172026, 0 2px 6px #1717200f;
 }
 
@@ -51,6 +58,8 @@
   --success-soft: #4fc3821f;
   --warning: #e5a74a;
   --warning-soft: #e5a74a1f;
+  --info: #6ea8f5;
+  --info-soft: #6ea8f51f;
   --ring: #7f7af080;
   --shadow: 0 1px 2px #00000040;
   --shadow-lg: 0 12px 40px #00000080, 0 2px 8px #00000040;
@@ -77,7 +86,12 @@
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
   --color-ring: var(--ring);
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
   --shadow-card: var(--shadow);
   --shadow-pop: var(--shadow-lg);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
